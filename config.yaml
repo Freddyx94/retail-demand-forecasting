@@ -1,0 +1,17 @@
+# Single source of truth for project scope and settings.
+# Every script and dbt model reads from here, so changing the store or
+# category means editing this file only.
+
+scope:
+  store_id: CA_1        # one Walmart store in California
+  cat_id: FOODS         # food products only (~1,400 items)
+
+forecast:
+  horizon: 28           # days ahead to forecast (M5 standard)
+  cv_folds: 3           # rolling-origin cross-validation folds
+
+paths:
+  raw_dir: data/raw
+  database: data/forecast.duckdb
+  mlflow_dir: mlruns
+  model_dir: models

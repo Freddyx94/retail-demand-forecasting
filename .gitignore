@@ -1,0 +1,31 @@
+# --- Data (Kaggle licence: never redistribute) ---
+data/
+*.duckdb
+*.duckdb.wal
+
+# --- ML artefacts ---
+mlruns/
+mlartifacts/
+models/
+*.pkl
+*.joblib
+*.txt.model
+
+# --- dbt build output ---
+dbt_project/target/
+dbt_project/logs/
+dbt_project/dbt_packages/
+logs/
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ipynb_checkpoints/
+
+# --- Editors / OS ---
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

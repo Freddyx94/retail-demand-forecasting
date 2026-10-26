@@ -1,0 +1,25 @@
+# Data storage and transformation
+duckdb
+dbt-duckdb
+pandas
+numpy
+pyyaml
+
+# Modelling
+scikit-learn
+lightgbm
+statsforecast
+mlflow
+
+# Serving
+fastapi
+uvicorn
+pydantic
+
+# Testing
+pytest
+httpx
+
+# Analysis
+matplotlib
+jupyter
