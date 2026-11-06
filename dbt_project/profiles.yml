@@ -1,0 +1,10 @@
+# Connection settings. Kept inside the project (not ~/.dbt/) so the repo
+# runs as-is on any machine; it contains no secrets, only a file path.
+# The path is relative to dbt_project/, where dbt is run from.
+retail_forecasting:
+  target: dev
+  outputs:
+    dev:
+      type: duckdb
+      path: ../data/forecast.duckdb
+      threads: 4

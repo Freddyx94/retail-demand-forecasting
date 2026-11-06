@@ -1,0 +1,31 @@
+name: retail_forecasting
+version: "1.0.0"
+config-version: 2
+
+# Which connection in profiles.yml to use
+profile: retail_forecasting
+
+model-paths: ["models"]
+test-paths: ["tests"]
+macro-paths: ["macros"]
+target-path: "target"
+clean-targets: ["target", "dbt_packages"]
+
+# Project scope. config.yaml is the source of truth: the pipeline passes
+# its values with `dbt build --vars ...`, which overrides these defaults.
+# Keep them in sync with config.yaml if you run dbt by hand.
+vars:
+  store_id: CA_1
+  cat_id: FOODS
+
+models:
+  retail_forecasting:
+    staging:
+      +schema: staging
+      +materialized: view    # light cleaning, cheap to recompute
+    marts:
+      +schema: marts
+      +materialized: table   # star schema read by analysis and Power BI
+    ml:
+      +schema: ml
+      +materialized: table   # feature table read by model training
