@@ -1,0 +1,15 @@
+version: 2
+
+# The raw tables loaded by ingestion/load_raw.py. Models read them with
+# {{ source('raw', '<table>') }} so dbt knows where the lineage starts.
+sources:
+  - name: raw
+    schema: raw
+    description: M5 Forecasting CSV files, loaded unchanged (all stores, all categories).
+    tables:
+      - name: calendar
+        description: One row per day (d_1 ... d_1969) with events and SNAP flags per state.
+      - name: sell_prices
+        description: Weekly sell price per store and item. Missing before an item launched.
+      - name: sales_train_evaluation
+        description: Daily unit sales in wide format, one row per item x store, columns d_1 ... d_1941.
