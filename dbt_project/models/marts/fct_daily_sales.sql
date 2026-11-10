@@ -15,7 +15,7 @@
 --
 -- Expected row count: for each item, the number of days from launch_date
 -- to the last sales day (2016-05-22), inclusive, summed over all items.
--- See the check query in the notes.
+-- Verified by tests/assert_no_missing_dates_after_launch.sql.
 
 with sales as (
 
