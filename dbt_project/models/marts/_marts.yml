@@ -1,0 +1,85 @@
+version: 2
+
+models:
+  - name: dim_date
+    description: "One row per calendar day (1,969 days), including the 28-day forecast horizon after the last sales day."
+    columns:
+      - name: date
+        description: "Calendar date. Primary key."
+        data_tests:
+          - unique
+          - not_null
+      - name: d
+        description: "M5 day label (d_1 ... d_1969), used to link raw sales to dates."
+      - name: wm_yr_wk
+        description: "Walmart week ID. Links days to weekly prices."
+      - name: is_event
+        description: "TRUE if the day has at least one event (sporting, cultural, national or religious)."
+      - name: event_type
+        description: "Type of the day's first listed event (event_type_1); NULL if no event."
+      - name: is_snap
+        description: "TRUE if SNAP (food stamp) purchases were allowed that day in the store's state."
+
+  - name: dim_item
+    description: "One row per item in scope, with launch information."
+    columns:
+      - name: item_id
+        description: "Item identifier, e.g. FOODS_3_090. Primary key."
+        data_tests:
+          - unique
+          - not_null
+      - name: dept_id
+        description: "Department, e.g. FOODS_3."
+      - name: launch_week
+        description: "First Walmart week with a price for this item."
+      - name: launch_date
+        description: "First day of launch_week. The fact table starts here for each item."
+      - name: first_sale_date
+        description: "First day with units_sold > 0. Can be later than launch_date."
+
+  - name: dim_store
+    description: "One row per store in scope."
+    columns:
+      - name: store_id
+        description: "Store identifier, e.g. CA_1. Primary key."
+        data_tests:
+          - unique
+          - not_null
+      - name: state_id
+        description: "US state of the store, e.g. CA."
+
+  - name: fct_daily_sales
+    description: "Daily unit sales. Grain: one row per item x store x date, from each item's launch_date to the last sales day."
+    columns:
+      - name: date
+        description: "Sales date."
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_date')
+                field: date
+      - name: item_id
+        description: "Item sold."
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_item')
+                field: item_id
+      - name: store_id
+        description: "Store where the item was sold."
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_store')
+                field: store_id
+      - name: units_sold
+        description: "Units sold that day. Zero is a real value (item was available, nobody bought it)."
+        data_tests:
+          - not_null
+      - name: sell_price
+        description: "Price that week (USD)."
+        data_tests:
+          - not_null
