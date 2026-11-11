@@ -26,6 +26,9 @@ __pycache__/
 .ipynb_checkpoints/
 *.egg-info/
 
+# --- Dashboard data (item-level M5 sales: not redistributable) ---
+dashboard/data/
+
 # --- Editors / OS ---
 .vscode/
 .idea/
