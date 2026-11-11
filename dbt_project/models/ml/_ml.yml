@@ -26,3 +26,52 @@ models:
         description: "Last day of the zero-sales run."
       - name: run_days
         description: "Length of the run in days (>= 28)."
+
+  - name: feat_daily_sales
+    description: >
+      Model input. One row per item x date with the target (units_sold) and
+      features known 28 days before the day: sales history shifted by at
+      least 28 days, calendar, events, price and product age.
+    columns:
+      - name: date
+        description: "Day being predicted."
+        data_tests:
+          - not_null
+      - name: item_id
+        description: "Item being predicted."
+        data_tests:
+          - not_null
+      - name: units_sold
+        description: "Target: units sold that day."
+        data_tests:
+          - not_null
+      - name: lag_28
+        description: "Units sold 28 days earlier (same weekday). NULL in the item's first 28 days."
+      - name: lag_35
+        description: "Units sold 35 days earlier."
+      - name: lag_42
+        description: "Units sold 42 days earlier."
+      - name: rmean_7_lag28
+        description: "Mean daily units over the 7 days ending 28 days earlier."
+      - name: rmean_28_lag28
+        description: "Mean daily units over the 28 days ending 28 days earlier."
+      - name: rmean_56_lag28
+        description: "Mean daily units over the 56 days ending 28 days earlier."
+      - name: rstd_28_lag28
+        description: "Standard deviation of daily units over the 28 days ending 28 days earlier."
+      - name: days_since_sale_lag28
+        description: "Days between this day and the last sale visible 28 days earlier. Long values hint at a stockout or delisting."
+      - name: days_to_next_event
+        description: "Days until the next event (0 = event today). Events are known in advance."
+      - name: next_event_name
+        description: "Name of that next event."
+      - name: price_vs_ref
+        description: "Price divided by the item's average price over the previous 364 days (past only). Below 1 = cheaper than usual."
+      - name: price_change_wow
+        description: "Price divided by the price 7 days earlier."
+      - name: days_since_launch
+        description: "Days since the item's launch_date."
+      - name: is_likely_stockout
+        description: "NOT A FEATURE. TRUE if the day is in ml.stockout_days. Used only to drop training labels and to split the evaluation."
+        data_tests:
+          - not_null
