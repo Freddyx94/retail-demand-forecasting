@@ -1,0 +1,43 @@
+# Continuous integration: on every push and pull request, GitHub sets up a
+# fresh Linux machine, installs the project from requirements.txt and runs
+# the test suite; a second job checks that the API's Docker image builds.
+#
+# No Kaggle data is needed: the tests use a small database built in a
+# temporary folder (tests/conftest.py). The dbt data tests need the real
+# data, so they run locally in `dbt build`, not here.
+
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  tests:
+    name: pytest
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.10 (the version the project is pinned on)
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+          cache: pip                      # reuse downloaded packages between runs
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run tests
+        run: pytest -v
+
+  docker:
+    name: docker build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the code
+        uses: actions/checkout@v4
+
+      - name: Build the API image
+        run: docker build -t retail-forecast-api .
