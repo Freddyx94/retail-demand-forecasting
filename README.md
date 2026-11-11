@@ -53,9 +53,26 @@ pip install -r requirements.txt
 
 ## Run
 
+Put the three M5 CSVs in `data/raw/`, then:
+
 ```bash
-python ingestion/load_raw.py    # CSVs -> DuckDB raw schema
-cd dbt_project
-dbt build                       # staging + marts, then all tests
-dbt docs generate && dbt docs serve   # optional: documentation and lineage graph
+python run_pipeline.py          # ingest -> dbt build (models + tests) -> train final model + write forecasts
+python run_pipeline.py --from dbt     # resume from a step; --only predict runs one step
+```
+
+Serve the forecasts:
+
+```bash
+uvicorn api.main:app            # local; interactive docs at http://127.0.0.1:8000/docs
+docker build -t retail-forecast-api .
+docker run --rm -p 8000:8000 -v "${PWD}/data:/app/data:ro" retail-forecast-api
+```
+
+Tests and model evaluation:
+
+```bash
+pytest                          # metrics, leakage guards, API (no Kaggle data needed)
+python -m forecasting.train     # rolling-origin CV of all models, logged to MLflow
+mlflow ui --backend-store-uri sqlite:///mlruns/mlflow.db
+cd dbt_project && dbt docs generate && dbt docs serve   # documentation and lineage graph
 ```
