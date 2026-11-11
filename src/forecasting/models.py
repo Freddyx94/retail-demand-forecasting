@@ -84,18 +84,26 @@ def ets(train: pd.DataFrame, valid: pd.DataFrame, history_days: int = 730) -> pd
     return out
 
 
-def lightgbm(train: pd.DataFrame, valid: pd.DataFrame, drop_stockouts: bool = True) -> pd.DataFrame:
+def lightgbm(
+    train: pd.DataFrame,
+    valid: pd.DataFrame,
+    drop_stockouts: bool = False,
+    params: dict | None = None,
+    rounds: int = LGBM_ROUNDS,
+) -> pd.DataFrame:
     """One gradient-boosted tree model for all items, using the feature table.
 
     Global model: learning across all 1,437 items lets a slow seller borrow
     patterns (weekly rhythm, holidays, price response) learned from others.
 
-    drop_stockouts: drop training rows inside likely stockouts (finding 6).
-    There the shelf was probably empty, so zero sales are not zero demand.
-    Set to False to measure what this cleaning changes.
+    drop_stockouts: drop training rows inside likely stockouts (finding 6),
+    so the model learns demand rather than sales. In CV this removed the
+    under-forecast on in-stock days (-5% -> +1.5%) but scored worse on all
+    days, so the main model keeps them (False).
+    params / rounds: override LGBM_PARAMS / LGBM_ROUNDS (used by tune.py).
     """
     if drop_stockouts:
         train = train[~train["is_likely_stockout"]]
     data = lgb.Dataset(train[LGBM_FEATURES], label=train["units_sold"])
-    booster = lgb.train(LGBM_PARAMS, data, num_boost_round=LGBM_ROUNDS)
+    booster = lgb.train({**LGBM_PARAMS, **(params or {})}, data, num_boost_round=rounds)
     return valid.assign(forecast=booster.predict(valid[LGBM_FEATURES]))

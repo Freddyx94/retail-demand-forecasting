@@ -27,7 +27,7 @@ MODELS = {
     "moving_average_28": baselines.moving_average,
     "ets": models.ets,
     "lightgbm": models.lightgbm,
-    "lightgbm_keep_stockouts": partial(models.lightgbm, drop_stockouts=False),
+    "lightgbm_drop_stockouts": partial(models.lightgbm, drop_stockouts=True),
 }
 
 
