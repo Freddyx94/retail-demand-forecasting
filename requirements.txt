@@ -28,6 +28,7 @@ matplotlib==3.10.9
 jupyter==1.1.1
 scipy==1.15.3
 statsmodels==0.15.0
+pyarrow==25.0.1          # parquet files (CV predictions for the dashboard)
 
 # This project's own code (src/forecasting), installed in editable mode
 -e .

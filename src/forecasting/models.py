@@ -102,8 +102,18 @@ def lightgbm(
     days, so the main model keeps them (False).
     params / rounds: override LGBM_PARAMS / LGBM_ROUNDS (used by tune.py).
     """
+    booster = fit_lightgbm(train, drop_stockouts, params, rounds)
+    return valid.assign(forecast=booster.predict(valid[LGBM_FEATURES]))
+
+
+def fit_lightgbm(
+    train: pd.DataFrame,
+    drop_stockouts: bool = False,
+    params: dict | None = None,
+    rounds: int = LGBM_ROUNDS,
+) -> lgb.Booster:
+    """Train the LightGBM model and return it (see `lightgbm` for the options)."""
     if drop_stockouts:
         train = train[~train["is_likely_stockout"]]
     data = lgb.Dataset(train[LGBM_FEATURES], label=train["units_sold"])
-    booster = lgb.train({**LGBM_PARAMS, **(params or {})}, data, num_boost_round=rounds)
-    return valid.assign(forecast=booster.predict(valid[LGBM_FEATURES]))
+    return lgb.train({**LGBM_PARAMS, **(params or {})}, data, num_boost_round=rounds)
