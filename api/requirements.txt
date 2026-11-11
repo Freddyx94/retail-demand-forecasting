@@ -1,0 +1,7 @@
+# Only what the API needs at run time (used by the Dockerfile).
+# The API reads precomputed forecasts, so no LightGBM, MLflow or dbt.
+# Versions match the main requirements.txt.
+duckdb==1.5.6
+fastapi==0.162.0
+uvicorn==0.54.0
+pydantic==2.14.1

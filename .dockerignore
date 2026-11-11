@@ -1,0 +1,22 @@
+# Files Docker should not send to the build (like .gitignore, for images).
+# Keeps the build fast and keeps data and secrets out of the image.
+data/
+*.duckdb
+*.duckdb.wal
+.venv/
+mlruns/
+models/
+results/
+dbt_project/
+analysis/
+dashboard/
+docs/
+tests/
+.git/
+.github/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+*.egg-info/
+.vscode/
+CLAUDE.md
