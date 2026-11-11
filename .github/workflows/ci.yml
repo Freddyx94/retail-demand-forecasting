@@ -15,7 +15,7 @@ on:
 jobs:
   tests:
     name: pytest
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04               # pinned, like the package versions: "latest" can change under us
     steps:
       - name: Check out the code
         uses: actions/checkout@v4
@@ -34,7 +34,7 @@ jobs:
 
   docker:
     name: docker build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04               # pinned, like the package versions: "latest" can change under us
     steps:
       - name: Check out the code
         uses: actions/checkout@v4
