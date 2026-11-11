@@ -17,6 +17,7 @@ clean-targets: ["target", "dbt_packages"]
 vars:
   store_id: CA_1
   cat_id: FOODS
+  horizon: 28      # days ahead to forecast (forecast.horizon in config.yaml)
 
 models:
   retail_forecasting:

@@ -11,13 +11,14 @@ from statsforecast import StatsForecast
 from statsforecast.models import AutoETS, WindowAverage
 
 # Every feature is known at the forecast origin (see feat_daily_sales.sql):
-# sales history is shifted by >= 28 days; calendar, events and prices are
-# known in advance. is_likely_stockout is deliberately NOT here.
+# sales history ends on the origin; calendar, events and prices are known
+# in advance. is_likely_stockout is deliberately NOT here.
 LGBM_FEATURES = [
-    # sales history (findings 1, 2, 6)
-    "lag_28", "lag_35", "lag_42",
-    "rmean_7_lag28", "rmean_28_lag28", "rmean_56_lag28", "rstd_28_lag28",
-    "days_since_sale_lag28",
+    # forecast position: how far ahead of the origin the day is
+    "horizon",
+    # sales history up to the origin (findings 1, 2, 6)
+    "mean_7d", "mean_28d", "mean_56d", "std_28d", "days_since_sale",
+    "same_weekday_last", "same_weekday_mean_4w",
     # calendar (findings 1-3)
     "weekday", "month", "day_of_month", "is_snap", "is_store_closed",
     # events (finding 3)
@@ -83,16 +84,18 @@ def ets(train: pd.DataFrame, valid: pd.DataFrame, history_days: int = 730) -> pd
     return out
 
 
-def lightgbm(train: pd.DataFrame, valid: pd.DataFrame) -> pd.DataFrame:
+def lightgbm(train: pd.DataFrame, valid: pd.DataFrame, drop_stockouts: bool = True) -> pd.DataFrame:
     """One gradient-boosted tree model for all items, using the feature table.
 
     Global model: learning across all 1,437 items lets a slow seller borrow
     patterns (weekly rhythm, holidays, price response) learned from others.
 
-    Training rows inside likely stockouts are dropped (finding 6): there the
-    shelf was probably empty, so zero sales are not zero demand.
+    drop_stockouts: drop training rows inside likely stockouts (finding 6).
+    There the shelf was probably empty, so zero sales are not zero demand.
+    Set to False to measure what this cleaning changes.
     """
-    train = train[~train["is_likely_stockout"]]
+    if drop_stockouts:
+        train = train[~train["is_likely_stockout"]]
     data = lgb.Dataset(train[LGBM_FEATURES], label=train["units_sold"])
     booster = lgb.train(LGBM_PARAMS, data, num_boost_round=LGBM_ROUNDS)
     return valid.assign(forecast=booster.predict(valid[LGBM_FEATURES]))

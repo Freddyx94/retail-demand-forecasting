@@ -10,6 +10,7 @@ here; it is evaluated once, at the end of Stage 3.
 """
 
 import argparse
+from functools import partial
 
 import mlflow
 import pandas as pd
@@ -26,6 +27,7 @@ MODELS = {
     "moving_average_28": baselines.moving_average,
     "ets": models.ets,
     "lightgbm": models.lightgbm,
+    "lightgbm_keep_stockouts": partial(models.lightgbm, drop_stockouts=False),
 }
 
 
@@ -74,7 +76,7 @@ def main() -> None:
         with mlflow.start_run(run_name=name):
             per_fold = cross_validate(name, forecast_fn, sales, cv_folds)
             mlflow.log_params({"model": name, "horizon": horizon, "cv_folds": n_folds})
-            if name == "lightgbm":
+            if name.startswith("lightgbm"):
                 mlflow.log_params({**models.LGBM_PARAMS, "num_boost_round": models.LGBM_ROUNDS,
                                    "features": ",".join(models.LGBM_FEATURES)})
             metric_cols = per_fold.columns.drop(["model", "fold", "n_items"])
