@@ -14,3 +14,7 @@ requires-python = ">=3.10"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]      # so tests can `import api.main`
