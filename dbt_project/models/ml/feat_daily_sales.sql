@@ -1,6 +1,6 @@
 -- feat_daily_sales.sql
 -- The table the forecasting model learns from.
--- Grain: one row per item x date (same as fct_daily_sales).
+-- Grain: one row per item x date (fct_daily_sales plus 28 future days).
 -- Each row holds the target (units_sold) and everything a planner would
 -- have KNOWN on the day the forecast was made.
 --
@@ -25,13 +25,60 @@
 -- recent sales. Measured on the CV folds, a 28-day average computed that
 -- way scored RMSSE 0.740 instead of 0.717 at the origin.
 --
+-- FUTURE ROWS (Stage 4: serving)
+-- The table also holds the next 28 days after the last sales day, one row
+-- per item still on sale, with is_future = TRUE and units_sold = NULL.
+-- Their origin is the last sales day. Training and scoring rows come from
+-- the SAME SQL, so the features the deployed model sees are computed
+-- exactly like the ones it learned from (no "training-serving skew").
+--
 -- Each feature group links to the finding in FINDINGS.md that justified it.
 
 {% set horizon = var('horizon') %}
 
-with sales as (
+with actuals as (
 
     select * from {{ ref('fct_daily_sales') }}
+
+),
+
+last_day as (
+
+    select max(date) as last_day from actuals
+
+),
+
+-- 0. The days to forecast --------------------------------------------------
+-- Every item sold on the last day x the next 28 days. Calendar and prices
+-- for these days are already known (stg_calendar and sell_prices run to
+-- d_1969); only the sales are unknown.
+
+future as (
+
+    select
+        d.date,
+        a.item_id,
+        a.store_id,
+        cast(null as integer) as units_sold,    -- unknown: this is what we forecast
+        p.sell_price
+    from actuals as a
+    cross join last_day as l
+    join {{ ref('dim_date') }} as d
+        on  d.date >  l.last_day
+        and d.date <= l.last_day + {{ horizon }}
+    left join {{ ref('stg_prices') }} as p
+        on  p.store_id = a.store_id
+        and p.item_id  = a.item_id
+        and p.wm_yr_wk = d.wm_yr_wk
+    where a.date = l.last_day
+
+),
+
+sales as (
+
+    select *, false as is_future from actuals
+    union all by name
+    select *, true  as is_future from future
 
 ),
 
@@ -59,11 +106,14 @@ with_origin as (
 
     select
         s.*,
-        -- (cast: DuckDB subtracts INTEGER days from a DATE, but not BIGINT)
-        l.last_day - ({{ horizon }} * ((l.last_day - s.date) // {{ horizon }} + 1))::int
-            as origin_date
+        case
+            -- the forecast we serve is made on the last sales day
+            when s.is_future then l.last_day
+            -- (cast: DuckDB subtracts INTEGER days from a DATE, but not BIGINT)
+            else l.last_day - ({{ horizon }} * ((l.last_day - s.date) // {{ horizon }} + 1))::int
+        end as origin_date
     from sales as s
-    cross join (select max(date) as last_day from sales) as l
+    cross join last_day as l
 
 ),
 
@@ -158,6 +208,7 @@ select
     o.item_id,
     i.dept_id,
     o.units_sold,
+    o.is_future,
     o.origin_date,
     o.date - o.origin_date             as horizon,
 

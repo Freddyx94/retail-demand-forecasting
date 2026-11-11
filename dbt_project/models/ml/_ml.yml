@@ -32,6 +32,8 @@ models:
       Model input. One row per item x date with the target (units_sold) and
       the features known on the row's forecast origin: sales history up to
       the origin, plus calendar, events, price and product age for the day.
+      Also holds the next 28 days after the last sales day (is_future = TRUE,
+      units_sold NULL): the rows the deployed model forecasts.
     columns:
       - name: date
         description: "Day being predicted."
@@ -42,7 +44,13 @@ models:
         data_tests:
           - not_null
       - name: units_sold
-        description: "Target: units sold that day."
+        description: "Target: units sold that day. NULL on future rows (not known yet)."
+        data_tests:
+          - not_null:
+              config:
+                where: "not is_future"
+      - name: is_future
+        description: "TRUE for the 28 days after the last sales day: rows to forecast, not to train on."
         data_tests:
           - not_null
       - name: origin_date
