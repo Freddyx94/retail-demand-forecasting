@@ -1,7 +1,7 @@
 # Findings
 
 **Scope:** Walmart store CA_1, FOODS category (1,437 products), 29 Jan 2011 to 22 May 2016.
-**Source:** every number below comes from [`analysis/01_eda.ipynb`](analysis/01_eda.ipynb) (section shown in brackets) and can be reproduced with `dbt build` followed by running the notebook.
+**Source:** every number below can be reproduced. Analysis findings come from [`analysis/01_eda.ipynb`](analysis/01_eda.ipynb) (section shown in brackets; run `dbt build` first). Model results come from the scripts named in each section.
 
 ## Key findings at a glance
 
@@ -70,4 +70,57 @@
 
 ## Model results
 
-*To be added in Stage 3.*
+**Task:** forecast daily units for each of the 1,437 products, 28 days ahead.
+**Main score:** RMSSE, the forecast error relative to each product's normal day-to-day variation, averaged over products, so slow and fast sellers count equally (lower is better). **Bias:** total forecast vs total actual sales.
+
+### Final test (hold-out: 25 April – 22 May 2016)
+These four weeks were not used for any decision. All model choices were made on three earlier 28-day test windows (rolling-origin cross-validation). Source: `python -m forecasting.final_eval` → [`results/holdout_results.csv`](results/holdout_results.csv).
+
+| Model | What it does | RMSSE | Weighted RMSSE¹ | Avg. miss (units/day) | Bias |
+|---|---|---|---|---|---|
+| Seasonal naive | Repeats the last 4 weeks | 1.021 | 1.077 | 1.84 | −6.8% |
+| Moving average | Average of the last 28 days | 0.779 | 0.826 | 1.52 | −6.8% |
+| ETS | One statistical model per product | 0.766 | 0.797 | 1.46 | −6.7% |
+| **LightGBM** | One machine-learning model for all products | **0.754** | **0.774** | **1.44** | −6.8% |
+
+¹ Products weighted by their recent sales value, as in the M5 competition: errors on big sellers count more.
+
+**LightGBM is 26% better than the seasonal-naive rule**, 3.2% better than a 28-day moving average and 1.5% better than ETS. Weighted by sales value, the gain over the moving average doubles to 6.4%. The cross-validation gave the same ranking and similar margins (27% / 3% / 2%), so the result is stable.
+
+**Every model under-forecast by about 7%.** Sales rose 7.3% in the final four weeks compared with the four before (the start of the summer peak, finding 1), and none of the models anticipated it.
+
+## 7. Most of the gain is on fast, regular sellers
+Source: `python -m forecasting.error_analysis` (three CV windows; LightGBM vs moving average).
+
+- **Fast sellers** (≥ 5 units/day): LightGBM is **8% better**, and wins for 74% of these products. **Slow sellers** (< 1/day): only **1% better**.
+- **Smooth** demand: 6% better. **Intermittent and lumpy** demand: about 2%.
+- Every gap holds in all three test windows and is significant (Wilcoxon signed-rank test across products, p < 10⁻⁵).
+
+**Meaning:** the model adds value where there is a pattern to learn. For products that sell a unit every few days, no model does much better than an average.
+
+## 8. The model is mainly a smarter moving average
+Source: `python -m forecasting.error_analysis` (feature importance by gain, mean over CV windows).
+
+- Recent sales levels make up **77%** of the model's decisions (last 28 days 44%, last 7 days 29%, last 56 days 4%). The product itself adds 11%, and the same weekday over the last 4 weeks 5%.
+- Calendar, events, price and SNAP together make up **about 4%** (the remaining 3% is days since the last sale, sales variability, horizon and product age). SNAP contributes almost nothing, even though SNAP days sell 13% more (finding 3). SNAP days are always the 1st–10th of the month, so the recent averages and day of month already carry most of that information.
+- Before events and on SNAP days, LightGBM's under-forecast is much smaller than the moving average's (−1.4% vs −5.9% before events, −0.4% vs −4.5% on SNAP days). On event days themselves it under-forecasts more (−5.9% vs −2.8%).
+
+## 9. Accuracy is limited by randomness, not by model settings
+Sources: `python -m forecasting.tune`, `python -m forecasting.train`.
+
+- Seven LightGBM variants (tree size, learning rate, Tweedie power, minimum leaf size) scored within **0.5%** of each other on cross-validation, less than the variation between test windows. The default settings were kept.
+- A first version whose features looked back at least 28 days per row lost accuracy: features computed on the forecast date work better. A 28-day average computed that way scored 0.740 instead of 0.717 on cross-validation.
+
+**Meaning:** further gains need better *information*, such as stock levels, promotions or displays, rather than more tuning.
+
+## 10. Removing likely stockouts changes the direction of the error, not its size
+Sources: `python -m forecasting.train`, `python -m forecasting.final_eval`.
+
+- Training without the likely-stockout days (finding 6) teaches the model **demand** instead of sales. In cross-validation it removed the under-forecast on in-stock days (−4.6% → +1.5%), but scored worse on all days (RMSSE 0.750 vs 0.696), because on stockout days actual sales were 0.
+- In the final test, where few days were flagged, the two versions scored almost the same (RMSSE 0.756 vs 0.754), and the stockout-cleaned version had the smaller bias (+2.0% vs −6.8%).
+- **The main model keeps stockout days** (it scores best on the standard measure). For ordering stock, the stockout-cleaned version is the better choice, because ordering to match past empty shelves keeps shelves empty.
+
+## Limitations
+- **One store, one category.** Results may not transfer to other stores or to non-food products.
+- **No stock data.** Stockouts are inferred from improbable zero runs, not observed.
+- **Calendar effects are under-used.** The model does not anticipate seasonal shifts such as the May upturn; a stronger yearly-seasonality feature is a candidate improvement.

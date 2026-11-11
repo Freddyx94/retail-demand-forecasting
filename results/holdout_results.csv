@@ -1,0 +1,6 @@
+model,mae,rmse,rmsse,weighted_rmsse,bias,rmsse_clean,bias_clean,rmsse_better_than_seasonal_naive_%,rmsse_better_than_moving_average_28_%,rmsse_better_than_ets_%
+lightgbm,1.4409,2.6559,0.7543,0.7735,-0.0676,0.7617,-0.0686,26.1442,3.2378,1.4996
+seasonal_naive,1.8357,3.519,1.0213,1.0768,-0.0679,1.0297,-0.0679,0.0,-31.015,-33.3685
+moving_average_28,1.5215,2.8861,0.7795,0.8261,-0.0679,0.788,-0.0679,23.6729,0.0,-1.7964
+ets,1.4611,2.7145,0.7657,0.7971,-0.0672,0.7741,-0.0675,25.0198,1.7647,0.0
+lightgbm_drop_stockouts,1.4842,2.6399,0.7565,0.7693,0.0198,0.7573,0.0103,25.9283,2.955,1.2117
