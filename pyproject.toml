@@ -1,0 +1,16 @@
+# Makes src/forecasting an installable package, so scripts, tests and the
+# API can all write `import forecasting` without path tricks.
+# Installed in editable mode by requirements.txt (`-e .`).
+
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "forecasting"
+version = "0.1.0"
+description = "Daily demand forecasting for Walmart store CA_1, FOODS category (M5 data)"
+requires-python = ">=3.10"
+
+[tool.setuptools.packages.find]
+where = ["src"]

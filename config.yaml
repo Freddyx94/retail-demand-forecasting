@@ -9,6 +9,8 @@ scope:
 forecast:
   horizon: 28           # days ahead to forecast (M5 standard)
   cv_folds: 3           # rolling-origin cross-validation folds
+                        # (each fold and the final hold-out is one horizon long;
+                        # the hold-out is the last `horizon` days of the data)
 
 paths:
   raw_dir: data/raw
