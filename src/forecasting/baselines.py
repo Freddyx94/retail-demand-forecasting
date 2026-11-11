@@ -12,7 +12,7 @@ def moving_average(train: pd.DataFrame, valid: pd.DataFrame, window: int = 28) -
     """"Every day sells the average of the last `window` days" (one flat line per item)."""
     last_date = train["date"].max()
     recent = train[train["date"] > last_date - pd.Timedelta(days=window)]
-    level = recent.groupby("item_id")["units_sold"].mean().rename("forecast")
+    level = recent.groupby("item_id", observed=True)["units_sold"].mean().rename("forecast")
     return valid.join(level, on="item_id")
 
 

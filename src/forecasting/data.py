@@ -20,13 +20,19 @@ def connect(config: dict) -> duckdb.DuckDBPyConnection:
     return duckdb.connect(str(ROOT / config["paths"]["database"]), read_only=True)
 
 
-def load_sales(con: duckdb.DuckDBPyConnection) -> pd.DataFrame:
-    """Daily sales per item, with the stockout flag used to split the evaluation.
+# Text columns stored as pandas categories: less memory, and LightGBM
+# treats them as categorical features. Setting the categories once, on the
+# full table, keeps the codes identical in every training and validation split.
+CATEGORICAL = ["item_id", "dept_id", "weekday", "event_name", "event_type", "next_event_name"]
 
-    One row per item x date from each item's launch to the last sales day.
+
+def load_features(con: duckdb.DuckDBPyConnection) -> pd.DataFrame:
+    """The feature table (ml.feat_daily_sales): one row per item x date.
+
+    Holds the target (units_sold), all model features and the
+    is_likely_stockout flag used to clean training labels and split the
+    evaluation. The baselines only use item_id, date and units_sold.
     """
-    return con.sql("""
-        SELECT item_id, dept_id, date, units_sold, is_likely_stockout
-        FROM ml.feat_daily_sales
-        ORDER BY item_id, date
-    """).df()
+    df = con.sql("SELECT * FROM ml.feat_daily_sales ORDER BY item_id, date").df()
+    df[CATEGORICAL] = df[CATEGORICAL].astype("category")
+    return df

@@ -76,12 +76,12 @@ def rmsse_scale(train: pd.DataFrame) -> pd.Series:
     comparable.
     """
     t = train.sort_values(["item_id", "date"])
-    by_item = t.groupby("item_id")["units_sold"]
+    by_item = t.groupby("item_id", observed=True)["units_sold"]
     has_sold = by_item.cummax() > 0
     # A day-to-day change counts only if the previous day was already after the first sale
-    previous_has_sold = has_sold.groupby(t["item_id"]).shift(1, fill_value=False)
+    previous_has_sold = has_sold.groupby(t["item_id"], observed=True).shift(1, fill_value=False)
     squared_change = by_item.diff().where(previous_has_sold) ** 2
-    return squared_change.groupby(t["item_id"]).mean()
+    return squared_change.groupby(t["item_id"], observed=True).mean()
 
 
 def rmsse(valid: pd.DataFrame, scale: pd.Series) -> float:
@@ -92,7 +92,7 @@ def rmsse(valid: pd.DataFrame, scale: pd.Series) -> float:
     are left out.
     """
     sq_err = (valid["units_sold"] - valid["forecast"]) ** 2
-    mse_per_item = sq_err.groupby(valid["item_id"]).mean()
+    mse_per_item = sq_err.groupby(valid["item_id"], observed=True).mean()
     per_item = np.sqrt(mse_per_item / scale.reindex(mse_per_item.index))
     return float(per_item.replace(np.inf, np.nan).dropna().mean())
 

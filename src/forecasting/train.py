@@ -1,18 +1,21 @@
 """Run every model through rolling-origin cross-validation and log it to MLflow.
 
 Usage (from the project root):
-    python -m forecasting.train
+    python -m forecasting.train                    # all models
+    python -m forecasting.train --models ets       # only the named models
 
 For each model: forecast each CV fold, compute the metrics, log them per fold
 and averaged to MLflow, and print a results table. The hold-out is NOT used
 here; it is evaluated once, at the end of Stage 3.
 """
 
+import argparse
+
 import mlflow
 import pandas as pd
 
-from forecasting import baselines
-from forecasting.data import ROOT, connect, load_config, load_sales
+from forecasting import baselines, models
+from forecasting.data import ROOT, connect, load_config, load_features
 from forecasting.evaluate import evaluate, make_folds, split
 
 EXPERIMENT = "m5_ca1_foods"
@@ -21,6 +24,8 @@ EXPERIMENT = "m5_ca1_foods"
 MODELS = {
     "seasonal_naive": baselines.seasonal_naive,
     "moving_average_28": baselines.moving_average,
+    "ets": models.ets,
+    "lightgbm": models.lightgbm,
 }
 
 
@@ -46,11 +51,16 @@ def cross_validate(name, forecast_fn, sales, folds) -> pd.DataFrame:
 
 
 def main() -> None:
+    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser.add_argument("--models", nargs="+", choices=list(MODELS), default=list(MODELS),
+                        help="models to run (default: all)")
+    selected = parser.parse_args().models
+
     config = load_config()
     horizon, n_folds = config["forecast"]["horizon"], config["forecast"]["cv_folds"]
 
     with connect(config) as con:
-        sales = load_sales(con)
+        sales = load_features(con)
 
     all_folds = make_folds(sales["date"].max(), horizon, n_folds)
     cv_folds = [f for f in all_folds if f.name != "holdout"]   # hold-out stays untouched
@@ -59,10 +69,14 @@ def main() -> None:
 
     setup_mlflow(config)
     results = []
-    for name, forecast_fn in MODELS.items():
+    for name in selected:
+        forecast_fn = MODELS[name]
         with mlflow.start_run(run_name=name):
             per_fold = cross_validate(name, forecast_fn, sales, cv_folds)
             mlflow.log_params({"model": name, "horizon": horizon, "cv_folds": n_folds})
+            if name == "lightgbm":
+                mlflow.log_params({**models.LGBM_PARAMS, "num_boost_round": models.LGBM_ROUNDS,
+                                   "features": ",".join(models.LGBM_FEATURES)})
             metric_cols = per_fold.columns.drop(["model", "fold", "n_items"])
             for _, row in per_fold.iterrows():
                 mlflow.log_metrics({f"{m}_{row['fold']}": row[m] for m in metric_cols})
