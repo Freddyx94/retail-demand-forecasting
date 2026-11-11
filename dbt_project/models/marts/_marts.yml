@@ -15,10 +15,16 @@ models:
         description: "Walmart week ID. Links days to weekly prices."
       - name: is_event
         description: "TRUE if the day has at least one event (sporting, cultural, national or religious)."
+      - name: event_name
+        description: "Name of the day's first listed event (event_name_1), e.g. Thanksgiving; NULL if no event."
       - name: event_type
         description: "Type of the day's first listed event (event_type_1); NULL if no event."
       - name: is_snap
         description: "TRUE if SNAP (food stamp) purchases were allowed that day in the store's state."
+      - name: is_store_closed
+        description: "TRUE on 25 December, when the store is closed and every item sells 0."
+        data_tests:
+          - not_null
 
   - name: dim_item
     description: "One row per item in scope, with launch information."
@@ -76,7 +82,7 @@ models:
                 to: ref('dim_store')
                 field: store_id
       - name: units_sold
-        description: "Units sold that day. Zero is a real value (item was available, nobody bought it)."
+        description: "Units sold that day. Zero can mean no demand or out of stock: the data has no stock levels. See ml.stockout_days for zeros that are likely stockouts."
         data_tests:
           - not_null
       - name: sell_price

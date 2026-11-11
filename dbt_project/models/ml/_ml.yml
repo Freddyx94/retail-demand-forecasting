@@ -1,0 +1,28 @@
+version: 2
+
+models:
+  - name: stockout_days
+    description: >
+      Days inside improbably long zero-sales runs (likely out of stock).
+      One row per item x date, flagged days only. Uses the full history, so
+      it is for cleaning training labels and splitting the evaluation only,
+      never a model feature.
+    columns:
+      - name: item_id
+        description: "Item that was probably out of stock."
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_item')
+                field: item_id
+      - name: date
+        description: "Flagged day (units_sold = 0)."
+        data_tests:
+          - not_null
+      - name: run_start
+        description: "First day of the zero-sales run."
+      - name: run_end
+        description: "Last day of the zero-sales run."
+      - name: run_days
+        description: "Length of the run in days (>= 28)."
