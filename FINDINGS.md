@@ -3,6 +3,15 @@
 **Scope:** Walmart store CA_1, FOODS category (1,437 products), 29 Jan 2011 to 22 May 2016.
 **Source:** every number below can be reproduced. Analysis findings come from [`analysis/01_eda.ipynb`](analysis/01_eda.ipynb) (section shown in brackets; run `dbt build` first). Model results come from the scripts named in each section.
 
+## Summary
+
+**Question:** how many units of each food product will the store sell over the next 28 days, and how much better is a machine-learning model than a simple rule a store manager could use?
+
+- **The model is 26% more accurate than the manager's rule** "the next four weeks repeat the last four" (RMSSE 0.754 vs 1.021, on a month it had never seen). Against a stronger simple rule, the 28-day average, the gain is 3%, or 6% when products are weighted by sales value.
+- **The gain is concentrated where it matters most:** fast sellers (8% better than the average), a few products that carry a large share of sales (finding 5). For products that sell a unit every few days, no method does much better than an average.
+- **All methods under-forecast the final month by about 7%**, because sales started their summer rise. Seasonal timing and stock levels are the clearest routes to better forecasts (see *What I would do next*).
+- **Next 28 days (23 May – 19 June 2016):** 92,986 units forecast, 2% more than the previous four weeks; FOODS_3 is 73% of that. The forecasts are served by an API and shown in a [Power BI dashboard](dashboard/README.md).
+
 ## Key findings at a glance
 
 | # | Finding | What it means for the forecast model |
@@ -95,6 +104,7 @@ Source: `python -m forecasting.error_analysis` (three CV windows; LightGBM vs mo
 - **Fast sellers** (≥ 5 units/day): LightGBM is **8% better**, and wins for 74% of these products. **Slow sellers** (< 1/day): only **1% better**.
 - **Smooth** demand: 6% better. **Intermittent and lumpy** demand: about 2%.
 - Every gap holds in all three test windows and is significant (Wilcoxon signed-rank test across products, p < 10⁻⁵).
+- The final test confirms the pattern: 8.3% better on fast sellers, 2.1% on slow sellers (source: `python -m forecasting.export`, shown in the dashboard).
 
 **Meaning:** the model adds value where there is a pattern to learn. For products that sell a unit every few days, no model does much better than an average.
 
@@ -120,7 +130,27 @@ Sources: `python -m forecasting.train`, `python -m forecasting.final_eval`.
 - In the final test, where few days were flagged, the two versions scored almost the same (RMSSE 0.756 vs 0.754), and the stockout-cleaned version had the smaller bias (+2.0% vs −6.8%).
 - **The main model keeps stockout days** (it scores best on the standard measure). For ordering stock, the stockout-cleaned version is the better choice, because ordering to match past empty shelves keeps shelves empty.
 
+---
+
+## The forecast for the next 28 days
+Source: `python -m forecasting.predict` → table `serving.forecasts`, checked with [`analysis/02_forecast_patterns.sql`](analysis/02_forecast_patterns.sql); dashboard pages in [`dashboard/`](dashboard/README.md).
+
+- The final model was retrained on all data up to 22 May 2016 and forecasts **92,986 units** for 23 May – 19 June, 2% more than the 90,833 sold in the previous four weeks.
+- By department: FOODS_3 67,904 units (73%), FOODS_2 15,425, FOODS_1 9,657.
+- The forecasts keep the patterns found in the analysis: weekends 1.45× a midweek day; Memorial Day (30 May) 3,347 units vs 3,025 and 3,157 on the Mondays without an event or SNAP; SNAP Wednesdays (1 and 8 June) about 3,000 vs 2,554 and 2,741 on the other two.
+- They are available per product through the API (`/forecast/{item_id}`) and in the dashboard.
+
 ## Limitations
 - **One store, one category.** Results may not transfer to other stores or to non-food products.
 - **No stock data.** Stockouts are inferred from improbable zero runs, not observed.
-- **Calendar effects are under-used.** The model does not anticipate seasonal shifts such as the May upturn; a stronger yearly-seasonality feature is a candidate improvement.
+- **Calendar effects are under-used.** The model does not anticipate seasonal shifts such as the May upturn.
+- **Single-number forecasts.** The model gives the expected units per day, not a range. For ordering, the uncertainty matters as much as the average.
+- **The 28-day forecast cannot be checked.** The data ends on 22 May 2016, so its accuracy is estimated from the hold-out month, not measured.
+
+## What I would do next
+1. **Add yearly seasonality**, e.g. sales in the same weeks last year. This targets the 7% under-forecast at the start of the summer rise (finding 1, model results).
+2. **Use stock data**, if available, instead of inferring stockouts. Then the stockout-cleaned model (finding 10) could be trained on true demand and used for ordering.
+3. **Forecast ranges, not just averages:** quantile forecasts ("80% chance of selling 40–60 units") to set safety stock per product.
+4. **A specialist method for slow sellers**, such as Croston or TSB, built for products that sell a unit every few days, where LightGBM adds only 1–2% (finding 7).
+5. **Scale up:** all 10 stores and 3 categories. The scope is set in `config.yaml`, so the pipeline runs unchanged; the main work is checking that the findings hold.
+6. **Run it on a schedule:** retrain and re-forecast every 28 days with an orchestrator such as Airflow, compare each forecast with the actual sales as they arrive, and alert when the error drifts.
