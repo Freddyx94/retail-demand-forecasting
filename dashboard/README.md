@@ -9,7 +9,13 @@ and what it forecasts for the next 28 days.
 
 **Product view:** actual vs forecast for one product (here the best seller, FOODS_3_090): 12 weeks of history, the hold-out month with LightGBM and the seasonal-naive rule, and the next 28 days.
 
-![Dashboard product view](product_overview.png)
+![Dashboard product view](product_view.png)
+
+**Explore it yourself:** download [`retail_forecast.pbix`](retail_forecast.pbix) and open it in
+[Power BI Desktop](https://www.microsoft.com/power-platform/products/power-bi/desktop) (free, Windows).
+The report includes its data, so the slicers and the product picker work straight away. To refresh it
+with new forecasts, run `python run_pipeline.py` and `python -m forecasting.export`, then point the four
+data sources to your own `dashboard/data/` folder (Transform data → Data source settings).
 
 ## Data
 
