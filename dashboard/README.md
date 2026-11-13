@@ -3,7 +3,13 @@
 Power BI report on the forecasts: how accurate the model is, where it helps,
 and what it forecasts for the next 28 days.
 
-![Dashboard](screenshot.png)
+**Overview:** accuracy against the baselines, where the model helps most, and next month's forecast by department (slicers: department, sales speed).
+
+![Dashboard overview](overview.png)
+
+**Product view:** actual vs forecast for one product (here the best seller, FOODS_3_090): 12 weeks of history, the hold-out month with LightGBM and the seasonal-naive rule, and the next 28 days.
+
+![Dashboard product view](product_overview.png)
 
 ## Data
 
