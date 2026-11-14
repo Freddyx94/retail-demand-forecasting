@@ -1,5 +1,7 @@
 # Retail Demand Forecasting: From Raw Sales Data to a Deployed Forecast
 
+[![CI](https://github.com/Freddyx94/retail-demand-forecasting/actions/workflows/ci.yml/badge.svg)](https://github.com/Freddyx94/retail-demand-forecasting/actions/workflows/ci.yml)
+
 **Business question:** How many units of each food product will one Walmart store sell over the next 28 days, and how much better is a machine learning model than a simple rule a store manager could use?
 
 An end-to-end forecasting system on real Walmart data (M5, store CA_1, 1,437 food products, 5 years of daily sales). Raw CSVs are modelled into a tested **dbt** star schema in **DuckDB**, analysed to decide which features to build, and used to train a **LightGBM** model that is validated with rolling-origin cross-validation, tracked in **MLflow**, and compared against baselines and ETS. The final forecasts are written to a table, served by a **FastAPI** service in **Docker** with **pytest** tests and **GitHub Actions** CI, and shown in a **Power BI** dashboard. One command rebuilds everything from the raw files.
